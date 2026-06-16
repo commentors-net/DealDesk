@@ -1,12 +1,33 @@
+# System files
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Backend dependencies and secrets
 backend/.env
-backend/storage/
 backend/node_modules/
+backend/package-lock.json
+
+# Backend runtime data
+backend/storage/
 backend/cache/
 backend/logs/
-backend/sql/
 backend/backups/
+
+# Backend scripts (not core app)
+backend/scripts/run-migration.js
+backend/scripts/test-tools.js
+backend/scripts/test-api-route.js
+
+# Frontend dependencies and generated data
 frontend/node_modules/
-fontend/generated-docs/
+frontend/generated-docs/
 frontend/source-docs/
+
+# Documentation and temporary files
 documentation/
+temp_discussion.txt
+temp_spec.pdf
+
+# Server config
 .htaccess

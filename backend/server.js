@@ -5328,6 +5328,35 @@ async function claireRereadIntakeDraftDocuments(publicId) {
 // DEALDESK_RESTORED_HANDLE_REQUEST_WRAPPER_V1
 async function handleRequest(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+  // Serve static files from frontend folder
+  if (req.method === 'GET' && !url.pathname.startsWith('/api/')) {
+    const fs = require('fs');
+    const path = require('path');
+    
+    let filePath = url.pathname;
+    if (filePath === '/' || filePath === '') filePath = '/index.html';
+    
+    // Normalize path to frontend folder
+    const fullPath = path.join(__dirname, '..', 'frontend', filePath);
+    
+    if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+      const ext = path.extname(fullPath).toLowerCase();
+      const mimeTypes = {
+        '.html': 'text/html',
+        '.css': 'text/css',
+        '.js': 'text/javascript',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.svg': 'image/svg+xml'
+      };
+      
+      res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+      fs.createReadStream(fullPath).pipe(res);
+      return;
+    }
+  }
 // END_DEALDESK_RESTORED_HANDLE_REQUEST_WRAPPER_V1
 // CLAIRE_REREAD_AND_ATTACHMENT_VIEW_ROUTES_V1
   const claireIntakeAttachmentViewMatch =

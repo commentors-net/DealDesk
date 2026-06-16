@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Backend",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${workspaceFolder}/backend/server.js",
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Frontend",
+      "url": "http://localhost:3017/index.html",
+      "webRoot": "${workspaceFolder}/frontend"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Dev Console",
+      "url": "http://localhost:3017/dev-console.html",
+      "webRoot": "${workspaceFolder}/frontend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full App (Backend + Dash)",
+      "configurations": ["Launch Backend", "Launch Frontend"]
+    },
+    {
+      "name": "Dev Mode (Backend + Console)",
+      "configurations": ["Launch Backend", "Launch Dev Console"]
+    }
+  ]
+}
