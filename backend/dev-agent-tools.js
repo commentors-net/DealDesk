@@ -31,6 +31,40 @@ function redact(text) {
     return redacted;
 }
 
+const ROOT_DIR = path.resolve(__dirname, '..');
+
+/**
+ * Resolves a given path relative to the project root and checks if it's safe (sandboxed).
+ */
+function getSafePath(inputPath) {
+    if (!inputPath) {
+        throw new Error('Path is required.');
+    }
+    
+    // Resolve absolute path
+    const resolvedPath = path.isAbsolute(inputPath) 
+        ? path.resolve(inputPath) 
+        : path.resolve(ROOT_DIR, inputPath);
+        
+    // Check if it's within the sandbox (ROOT_DIR)
+    if (!resolvedPath.startsWith(ROOT_DIR)) {
+        throw new Error(`Access Denied: Path '${inputPath}' is outside the project workspace.`);
+    }
+    
+    // Prevent modification of Git files/folders
+    const relative = path.relative(ROOT_DIR, resolvedPath);
+    if (relative.startsWith('.git') || relative.split(path.sep).includes('.git')) {
+        throw new Error(`Access Denied: Cannot access Git files.`);
+    }
+    
+    // Prevent modification of node_modules
+    if (relative.split(path.sep).includes('node_modules')) {
+        throw new Error(`Access Denied: Cannot access node_modules.`);
+    }
+
+    return resolvedPath;
+}
+
 /**
  * Whitelisted files for reading/grepping.
  */
@@ -49,23 +83,26 @@ const WHITELISTED_FILES = [
  * Tool: read_file
  */
 async function read_file(args) {
-    const { file_key, start_line = 1, end_line = 250 } = args;
+    const { file_key, file_path, start_line = 1, end_line = 250 } = args;
     
-    if (!WHITELISTED_FILES.includes(file_key)) {
-        throw new Error(`Access denied: File '${file_key}' is not whitelisted.`);
-    }
-
-    // Determine if file is in frontend or backend
     let filePath;
-    if (file_key === 'server.js') {
-        filePath = path.join(__dirname, 'server.js');
+    if (file_path) {
+        filePath = getSafePath(file_path);
+    } else if (file_key) {
+        if (!WHITELISTED_FILES.includes(file_key)) {
+            throw new Error(`Access denied: File '${file_key}' is not whitelisted.`);
+        }
+        if (file_key === 'server.js') {
+            filePath = path.join(__dirname, 'server.js');
+        } else {
+            filePath = path.join(__dirname, '..', 'frontend', file_key);
+        }
     } else {
-        // Assume frontend for others based on project structure
-        filePath = path.join(__dirname, '..', 'frontend', file_key);
+        throw new Error("Missing parameter: 'file_key' or 'file_path' is required.");
     }
 
     if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${file_key}`);
+        throw new Error(`File not found: ${file_path || file_key}`);
     }
 
     const content = fs.readFileSync(filePath, 'utf8').split('\n');
@@ -78,21 +115,29 @@ async function read_file(args) {
  * Tool: grep_file
  */
 async function grep_file(args) {
-    const { file_key, pattern } = args;
-    
-    if (!WHITELISTED_FILES.includes(file_key)) {
-        throw new Error(`Access denied: File '${file_key}' is not whitelisted.`);
+    const { file_key, file_path, pattern } = args;
+    if (!pattern) {
+        throw new Error("Missing parameter: 'pattern' is required.");
     }
 
     let filePath;
-    if (file_key === 'server.js') {
-        filePath = path.join(__dirname, 'server.js');
+    if (file_path) {
+        filePath = getSafePath(file_path);
+    } else if (file_key) {
+        if (!WHITELISTED_FILES.includes(file_key)) {
+            throw new Error(`Access denied: File '${file_key}' is not whitelisted.`);
+        }
+        if (file_key === 'server.js') {
+            filePath = path.join(__dirname, 'server.js');
+        } else {
+            filePath = path.join(__dirname, '..', 'frontend', file_key);
+        }
     } else {
-        filePath = path.join(__dirname, '..', 'frontend', file_key);
+        throw new Error("Missing parameter: 'file_key' or 'file_path' is required.");
     }
 
     if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${file_key}`);
+        throw new Error(`File not found: ${file_path || file_key}`);
     }
 
     const content = fs.readFileSync(filePath, 'utf8').split('\n');
@@ -105,6 +150,151 @@ async function grep_file(args) {
 
     const result = matches.map(m => `L${m.number}: ${m.line}`).join('\n');
     return redact(result || '(No matches found)');
+}
+
+/**
+ * Tool: write_file
+ */
+async function write_file(args) {
+    const { file_path, content } = args;
+    if (!file_path) {
+        throw new Error("Missing parameter: 'file_path' is required.");
+    }
+    if (content === undefined) {
+        throw new Error("Missing parameter: 'content' is required.");
+    }
+
+    const safePath = getSafePath(file_path);
+    
+    // Ensure parent directories exist
+    const parentDir = path.dirname(safePath);
+    if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, { recursive: true });
+    }
+
+    fs.writeFileSync(safePath, content, 'utf8');
+    return `Success: Written file to ${path.relative(ROOT_DIR, safePath)}`;
+}
+
+/**
+ * Tool: replace_file_content
+ */
+async function replace_file_content(args) {
+    const { file_path, target_content, replacement_content } = args;
+    if (!file_path) {
+        throw new Error("Missing parameter: 'file_path' is required.");
+    }
+    if (target_content === undefined) {
+        throw new Error("Missing parameter: 'target_content' is required.");
+    }
+    if (replacement_content === undefined) {
+        throw new Error("Missing parameter: 'replacement_content' is required.");
+    }
+
+    const safePath = getSafePath(file_path);
+    if (!fs.existsSync(safePath)) {
+        throw new Error(`File not found: ${path.relative(ROOT_DIR, safePath)}`);
+    }
+
+    const fileContent = fs.readFileSync(safePath, 'utf8');
+    if (!fileContent.includes(target_content)) {
+        throw new Error(`Target content not found in file ${path.relative(ROOT_DIR, safePath)}.`);
+    }
+
+    const newContent = fileContent.split(target_content).join(replacement_content);
+    fs.writeFileSync(safePath, newContent, 'utf8');
+    return `Success: Updated file ${path.relative(ROOT_DIR, safePath)}`;
+}
+
+/**
+ * Validates that a shell command is whitelisted and contains no dangerous characters.
+ */
+function validateCommand(command) {
+    if (typeof command !== 'string') {
+        throw new Error('Command must be a string.');
+    }
+    
+    const trimmed = command.trim();
+    if (!trimmed) {
+        throw new Error('Command cannot be empty.');
+    }
+
+    // Reject command chaining, redirection, subshells, variables, etc.
+    const forbiddenPatterns = /[&|;><`$]/;
+    if (forbiddenPatterns.test(trimmed)) {
+        throw new Error('Access Denied: Dangerous shell characters like &, |, ;, >, <, `, $ are forbidden.');
+    }
+
+    // Split into tokens
+    const tokens = trimmed.split(/\s+/);
+    const baseCmd = tokens[0];
+
+    // Whitelist of allowed base commands
+    const allowedCommands = ['git', 'npm', 'node'];
+    if (!allowedCommands.includes(baseCmd)) {
+        throw new Error(`Access Denied: Command '${baseCmd}' is not whitelisted. Only git, npm, and node are allowed.`);
+    }
+
+    // Whitelist of allowed subcommands
+    if (baseCmd === 'git') {
+        const allowedGitSub = ['status', 'diff', 'log', 'show', 'branch'];
+        const sub = tokens[1];
+        if (!sub || !allowedGitSub.includes(sub)) {
+            throw new Error(`Access Denied: 'git ${sub || ""}' is not allowed. Whitelisted git subcommands: ${allowedGitSub.join(', ')}.`);
+        }
+    } else if (baseCmd === 'npm') {
+        const allowedNpmSub = ['run', 'test', 'install', 'build'];
+        const sub = tokens[1];
+        if (!sub || !allowedNpmSub.includes(sub)) {
+            throw new Error(`Access Denied: 'npm ${sub || ""}' is not allowed. Whitelisted npm subcommands: ${allowedNpmSub.join(', ')}.`);
+        }
+        // If it's npm run, ensure we check the script name
+        if (sub === 'run') {
+            const script = tokens[2];
+            const allowedScripts = ['build', 'test', 'dev', 'start'];
+            if (!script || !allowedScripts.includes(script)) {
+                throw new Error(`Access Denied: 'npm run ${script || ""}' is not allowed. Whitelisted scripts: ${allowedScripts.join(', ')}.`);
+            }
+        }
+    } else if (baseCmd === 'node') {
+        // Only allow node --check
+        const arg = tokens[1];
+        if (arg !== '--check') {
+            throw new Error(`Access Denied: 'node ${arg || ""}' is not allowed. Only 'node --check' is allowed.`);
+        }
+        // Validate target path of node --check
+        const filePath = tokens[2];
+        if (filePath) {
+            getSafePath(filePath);
+        }
+    }
+
+    return trimmed;
+}
+
+/**
+ * Tool: run_command
+ */
+async function run_command(args) {
+    const { command } = args;
+    const validatedCmd = validateCommand(command);
+
+    return new Promise((resolve) => {
+        // Execute with a timeout of 15 seconds
+        exec(validatedCmd, { cwd: ROOT_DIR, timeout: 15000 }, (error, stdout, stderr) => {
+            let output = '';
+            if (stdout) output += stdout;
+            if (stderr) output += `\nStderr:\n${stderr}`;
+            if (error) {
+                if (error.killed) {
+                    output += `\nError: Command timed out after 15 seconds.`;
+                } else {
+                    output += `\nError: Command failed with exit code ${error.code || error.signal}.`;
+                }
+            }
+            resolve(redact(output.trim() || 'Command completed with no output.'));
+        });
+    });
 }
 
 /**
@@ -268,6 +458,9 @@ module.exports = {
     redact,
     read_file,
     grep_file,
+    write_file,
+    replace_file_content,
+    run_command,
     pm2_status,
     node_check,
     mysql_schema,

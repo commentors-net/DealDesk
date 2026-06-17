@@ -568,32 +568,62 @@ Return a concise operational review with these sections:
 6. Recommended Next Action
 7. Suggested Audit Event`;
 
-const DEV_AGENT_INSTRUCTIONS = `You are the Deal Desk Dev Agent Bridge (v1). 
-Your role is to help the developer interrogate the live application state securely.
+const pendingActions = new Map();
+
+async function requestDeveloperApproval(actionType, details, userPrompt) {
+  const actionId = crypto.randomUUID();
+  return new Promise((resolve, reject) => {
+    pendingActions.set(actionId, {
+      id: actionId,
+      type: actionType,
+      details,
+      user_prompt: userPrompt,
+      resolve,
+      reject,
+      status: 'pending',
+      created_at: Date.now()
+    });
+
+    // Timeout after 2 minutes to prevent hanging forever
+    setTimeout(() => {
+      if (pendingActions.has(actionId)) {
+        const act = pendingActions.get(actionId);
+        if (act.status === 'pending') {
+          act.status = 'timed_out';
+          pendingActions.delete(actionId);
+          reject(new Error('Approval request timed out after 2 minutes.'));
+        }
+      }
+    }, 120000);
+  });
+}
+
+const DEV_AGENT_INSTRUCTIONS = `You are the Deal Desk Dev Agent Bridge (v2). 
+Your role is to help the developer interrogate the live application state and modify files securely in the workspace.
 
 RULES:
-- You are STRICTLY READ-ONLY. You cannot modify any files or database rows.
-- Always use the provided tools to gather information before answering.
+- You can now read, search, write, and modify files in the workspace.
+- You can execute whitelisted development commands (such as npm build/test, git diff/status, or node check) using run_command.
+- Always use the provided tools to gather information before answering or writing files.
 - Do not guess or invent information.
 - Redact all API keys, passwords, and secrets from your final answer.
-- Propose patches or commands if helpful, but never attempt to run them yourself.
 - Prefer existing files and existing structure.
-- If you encounter a problem, describe it clearly and propose a solution for the human to execute.`;
+- When you want to modify a file, use the appropriate write or replacement tools.`;
 
 const DEV_AGENT_TOOLS = [
   {
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Reads a whitelisted project file.',
+      description: 'Reads a project file. Specify file_key for whitelisted files or file_path for any safe workspace path.',
       parameters: {
         type: 'object',
         properties: {
           file_key: { type: 'string', enum: ['index.html', 'dashboard.html', 'detail.html', 'input.html', 'contacts.html', 'print.html', 'server.js', '.htaccess'] },
+          file_path: { type: 'string', description: 'Relative path in the workspace, e.g., backend/server.js' },
           start_line: { type: 'integer' },
           end_line: { type: 'integer' }
-        },
-        required: ['file_key']
+        }
       }
     }
   },
@@ -601,14 +631,60 @@ const DEV_AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'grep_file',
-      description: 'Searches a whitelisted file for a pattern.',
+      description: 'Searches a project file for a pattern.',
       parameters: {
         type: 'object',
         properties: {
           file_key: { type: 'string', enum: ['index.html', 'dashboard.html', 'detail.html', 'input.html', 'contacts.html', 'print.html', 'server.js', '.htaccess'] },
+          file_path: { type: 'string', description: 'Relative path in the workspace' },
           pattern: { type: 'string' }
         },
-        required: ['file_key', 'pattern']
+        required: ['pattern']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'write_file',
+      description: 'Creates a new file or overwrites an existing file with the provided content.',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: 'Relative or absolute path in the workspace.' },
+          content: { type: 'string', description: 'Complete content to write to the file.' }
+        },
+        required: ['file_path', 'content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'replace_file_content',
+      description: 'Replaces a specific substring (target_content) in a file with the replacement_content.',
+      parameters: {
+        type: 'object',
+        properties: {
+          file_path: { type: 'string', description: 'Relative or absolute path in the workspace.' },
+          target_content: { type: 'string', description: 'The exact substring to replace.' },
+          replacement_content: { type: 'string', description: 'The content to replace target_content with.' }
+        },
+        required: ['file_path', 'target_content', 'replacement_content']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'run_command',
+      description: 'Executes a whitelisted shell command (git, npm, node --check) in the workspace.',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'The whitelisted command to execute, e.g., "git status", "npm test", "node --check server.js".' }
+        },
+        required: ['command']
       }
     }
   },
@@ -2747,6 +2823,13 @@ async function callDevAgentOpenAi(prompt, history = []) {
         let blocked_reason = null;
 
         try {
+          // Check if this tool requires human-in-the-loop approval
+          const requiresApproval = ['write_file', 'replace_file_content', 'run_command'].includes(name);
+          if (requiresApproval) {
+            // Wait for developer approval, passing the user prompt as context
+            await requestDeveloperApproval(name, args, prompt);
+          }
+
           if (typeof devAgentTools[name] === 'function') {
             // Check if tool needs pool
             if (name.startsWith('mysql_') || name.startsWith('get_')) {
@@ -5702,10 +5785,9 @@ if (req.method === 'GET' && url.pathname === '/api/dealdesk/health') {
     return;
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/dev-agent/chat') {
+  if (url.pathname.startsWith('/api/dev-agent/')) {
     const token = req.headers['x-dev-agent-token'];
     const expected = process.env.DEALDESK_DEV_AGENT_TOKEN;
-
     const remote = String(req.socket && req.socket.remoteAddress || '');
     const isLocal = remote === '127.0.0.1' || remote === '::1' || remote.endsWith('127.0.0.1');
 
@@ -5714,26 +5796,72 @@ if (req.method === 'GET' && url.pathname === '/api/dealdesk/health') {
       return;
     }
 
-    const body = await readJsonBody(req);
-    const prompt = cleanText(body.prompt);
-    const history = Array.isArray(body.history) ? body.history : [];
+    if (req.method === 'POST' && url.pathname === '/api/dev-agent/chat') {
+      const body = await readJsonBody(req);
+      const prompt = cleanText(body.prompt);
+      const history = Array.isArray(body.history) ? body.history : [];
 
-    if (!prompt) {
-      sendJson(res, 400, { ok: false, error: 'Prompt is required' });
+      if (!prompt) {
+        sendJson(res, 400, { ok: false, error: 'Prompt is required' });
+        return;
+      }
+
+      try {
+        const result = await callDevAgentOpenAi(prompt, history);
+        sendJson(res, 200, {
+          ok: true,
+          answer: result.answer,
+          audit_id: result.audit_id
+        });
+      } catch (err) {
+        sendJson(res, 500, { ok: false, error: err.message });
+      }
       return;
     }
 
-    try {
-      const result = await callDevAgentOpenAi(prompt, history);
-      sendJson(res, 200, {
-        ok: true,
-        answer: result.answer,
-        audit_id: result.audit_id
-      });
-    } catch (err) {
-      sendJson(res, 500, { ok: false, error: err.message });
+    if (req.method === 'GET' && url.pathname === '/api/dev-agent/pending') {
+      const list = Array.from(pendingActions.values())
+        .filter(a => a.status === 'pending')
+        .map(a => ({
+          id: a.id,
+          type: a.type,
+          details: a.details,
+          user_prompt: a.user_prompt,
+          created_at: a.created_at
+        }));
+      sendJson(res, 200, { ok: true, pending: list });
+      return;
     }
-    return;
+
+    if (req.method === 'POST' && url.pathname === '/api/dev-agent/approve') {
+      const body = await readJsonBody(req);
+      const { action_id } = body;
+      if (!action_id || !pendingActions.has(action_id)) {
+        sendJson(res, 404, { ok: false, error: 'Action not found or already processed' });
+        return;
+      }
+      const action = pendingActions.get(action_id);
+      action.status = 'approved';
+      pendingActions.delete(action_id);
+      action.resolve(true);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/dev-agent/reject') {
+      const body = await readJsonBody(req);
+      const { action_id, reason } = body;
+      if (!action_id || !pendingActions.has(action_id)) {
+        sendJson(res, 404, { ok: false, error: 'Action not found or already processed' });
+        return;
+      }
+      const action = pendingActions.get(action_id);
+      action.status = 'rejected';
+      pendingActions.delete(action_id);
+      action.reject(new Error(reason || 'Rejected by developer.'));
+      sendJson(res, 200, { ok: true });
+      return;
+    }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/dealdesk/dashboard') {
