@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 HTML="$APPDIR/claire-dealdesk-view.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$APPDIR/backups/claire-create-deal-$STAMP"
@@ -17,9 +17,11 @@ cp -f "$HTML" "$BACKUP_DIR/claire-dealdesk-view.html.before-create-deal.bak"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-html = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
+html = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
 text = html.read_text(encoding="utf-8", errors="replace")
 
 if 'id="createDealBtn"' not in text:

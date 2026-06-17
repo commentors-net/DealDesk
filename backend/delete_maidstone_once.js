@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const mysql = require("mysql2/promise");
 
-const BACKUP_DIR = process.env.DD_BACKUP_DIR || "/home/servicedepartmen/dealdesk-backend/backups";
+const BACKUP_DIR = process.env.DD_BACKUP_DIR || (process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/backups";
 const TERMS = ["25 Maidstone", "Maidstone Lane", "25 Maidstone Lane", "Wading River"];
 
 function dbConfig() {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 PM2_NAME="dealdesk-claire-dealview"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -27,10 +27,12 @@ cp -f "$SIDE" "$BACKUP_DIR/claire_dealview_sidecar.js.before-$STAMP.bak"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import re
 import sys
+import os
 
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
 side = SIDE.read_text(encoding="utf-8", errors="replace")
 
 old = "if (req.method === 'POST' && pathname === '/api/claire-dealview/send-clearance-email') {"

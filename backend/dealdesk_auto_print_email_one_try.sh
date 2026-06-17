@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 READER="$APPDIR/claire-dealdesk-view.html"
 DETAIL="$APPDIR/detail.html"
@@ -37,10 +37,12 @@ npm install puppeteer nodemailer
 
 cat > /tmp/dealdesk_auto_print_email_patch.py <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-BACKEND = Path("/home/servicedepartmen/dealdesk-backend")
-APPDIR = Path("/home/servicedepartmen/public_html/dealdesk")
+BACKEND = Path(os.environ.get("BACKEND_PATH", "/home/servicedepartmen/dealdesk-backend-2"))
+APPDIR = Path(os.environ.get("FRONTEND_PATH", "/home/servicedepartmen/public_html/dealdesk-2"))
 SIDE = BACKEND / "claire_dealview_sidecar.js"
 READER = APPDIR / "claire-dealdesk-view.html"
 DETAIL = APPDIR / "detail.html"
@@ -82,7 +84,7 @@ for req in required:
         side = req + "\n" + side
 
 helpers = r'''
-const DD_AUTO_DOC_ROOT = "/home/servicedepartmen/public_html/dealdesk/generated-docs";
+const DD_AUTO_DOC_ROOT = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/generated-docs";
 const DD_AUTO_MANIFEST_ROOT = path.join(DD_AUTO_DOC_ROOT, "manifests");
 try { fs.mkdirSync(DD_AUTO_DOC_ROOT, { recursive: true }); fs.mkdirSync(DD_AUTO_MANIFEST_ROOT, { recursive: true }); } catch (err) {}
 

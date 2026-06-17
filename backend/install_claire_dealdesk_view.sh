@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
-BACKEND="/home/servicedepartmen/dealdesk-backend"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 HTML="$APPDIR/claire-dealdesk-view.html"
 HTACCESS="$APPDIR/.htaccess"
@@ -26,10 +26,10 @@ const { ImapFlow } = require("imapflow");
 const { simpleParser } = require("mailparser");
 
 try {
-  require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+  require("dotenv").config({ path: require("path").join(process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2", ".env") });
 } catch (err) {}
 
-const BACKEND = "/home/servicedepartmen/dealdesk-backend";
+const BACKEND = (process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2");
 const CONFIG_PATH = path.join(BACKEND, "email-intake.config.json");
 const HOST = "127.0.0.1";
 const PORT = Number(process.env.CLAIRE_DEALVIEW_PORT || 3022);
@@ -521,7 +521,7 @@ cat > "$HTML" <<'HTML'
   function api(path){return "./api/claire-dealview"+path}
   async function getJson(url){const r=await fetch(url,{headers:{Accept:"application/json"},cache:"no-store"});const tx=await r.text();let d;try{d=tx?JSON.parse(tx):{}}catch(e){throw new Error("Backend returned non-JSON: "+tx.slice(0,300))}if(!r.ok||d.ok===false)throw new Error(d.error||("HTTP "+r.status));return d}
   function val(v){if(Array.isArray(v))return v.filter(Boolean).join(", "); if(v&&typeof v==="object")return Object.entries(v).filter(([k,x])=>x&&String(x).trim()).map(([k,x])=>`${k}: ${Array.isArray(x)?x.join(", "):x}`).join("\\n"); return v||""}
-  function kv(label,value){return `<div class="kv"><div class="k">${esc(label)}</div><div class="v">${esc(val(value)||"—")}</div></div>`}
+  function kv(label,value){return `<div class="kv"><div class="k">${esc(label)}</div><div class="v">${esc(val(value)||"â€”")}</div></div>`}
   function panel(title, rows){return `<div class="panel"><h3>${esc(title)}</h3><div class="panel-body">${rows.join("")}</div></div>`}
 
   async function listEmails(){
@@ -563,9 +563,9 @@ cat > "$HTML" <<'HTML'
     $("dealTab").innerHTML=`
       <div class="summary">
         <div class="metric"><div class="label">File Status</div><div class="value">${esc(f.file_status||"Intake Review")}</div></div>
-        <div class="metric"><div class="label">Property</div><div class="value">${esc(p.address||"—")}</div></div>
-        <div class="metric"><div class="label">Seller(s)</div><div class="value">${esc(val(seller.names)||"—")}</div></div>
-        <div class="metric"><div class="label">Purchaser(s)</div><div class="value">${esc(val(buyer.names)||"—")}</div></div>
+        <div class="metric"><div class="label">Property</div><div class="value">${esc(p.address||"â€”")}</div></div>
+        <div class="metric"><div class="label">Seller(s)</div><div class="value">${esc(val(seller.names)||"â€”")}</div></div>
+        <div class="metric"><div class="label">Purchaser(s)</div><div class="value">${esc(val(buyer.names)||"â€”")}</div></div>
       </div>
       <div class="section"><div class="section-title"><h2>Deal Fields</h2><span class="pill teal">Reviewable draft</span></div>
         <div class="field-grid">
@@ -594,7 +594,7 @@ cat > "$HTML" <<'HTML'
       for(const item of doc.dates_deadlines||[]) rows.push(kv(item.field,item.value));
       for(const item of doc.money_terms||[]) rows.push(kv(item.field,item.value));
       for(const item of doc.conditions_contingencies||[]) rows.push(kv(item.field,item.value));
-      return `<div class="panel"><h3>Document ${esc(doc.number||"")} — ${esc(doc.filename||"")}</h3><div class="panel-body">${rows.join("")}</div></div>`;
+      return `<div class="panel"><h3>Document ${esc(doc.number||"")} â€” ${esc(doc.filename||"")}</h3><div class="panel-body">${rows.join("")}</div></div>`;
     }).join("")}</div>`;
   }
 

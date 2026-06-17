@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 OUT="$BACKEND/backups/inspection-force-diagnostic-$STAMP.txt"
 NODE_SCRIPT="$BACKEND/force_inspection_clear_diagnostic.js"
@@ -28,7 +28,7 @@ cat > "$NODE_SCRIPT" <<'NODE'
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
-require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+require("dotenv").config({ path: require("path").join(process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2", ".env") });
 const mysql = require("mysql2/promise");
 
 const OUT = process.env.OUT_FILE || "/tmp/inspection-force-diagnostic.txt";
@@ -315,8 +315,9 @@ if [ -f "$APPDIR/detail.html" ]; then
 
   python3 - <<'PY'
 from pathlib import Path
+import os
 
-p = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
+p = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
 text = p.read_text(encoding="utf-8", errors="replace")
 
 marker = "DEALDESK_HIDE_EMPTY_GENERIC_DOCS_V1"

@@ -11,29 +11,54 @@ A real estate transaction management system for handling deals from "Accepted Of
 - [User & Developer Manual](./docs/USER_MANUAL.md) - Detailed guide on using the frontend vs. the Dev Console.
 
 ## Server Installation
-To install or update the system on your Linux server, use the automated deployment script provided in the backend folder.
+
+There are two ways to install or update the Deal Desk system: using the **Interactive Installer** (recommended for fresh setups) or the **Standard Deployer** (for updates).
 
 ### Prerequisites
-1. Ensure `git`, `node`, and `npm` are installed on the server.
+1. Ensure `git`, `node` (v16+), and `npm` are installed on the server.
 2. Ensure `pm2` is installed globally (`npm install -g pm2`).
+3. Ensure a MySQL/MariaDB database has been created by the system administrator.
 
-### Installation Steps
-1. **Clone/Update Repository:**
+---
+
+### Option 1: Interactive Installation (Fresh Setup)
+This is the easiest way to setup a new instance (e.g., `dealdesk-2`).
+
+1. **Upload or create `install.sh`** on your server.
+2. **Run the script:**
    ```bash
-   cd /home/servicedepartmen/dealdesk-backend
-   git pull origin main
+   bash install.sh
    ```
-2. **Configure Environment:**
-   Ensure `backend/.env` exists and contains your database credentials and the `DEALDESK_DEV_AGENT_TOKEN`.
-3. **Run Deployment Script:**
+3. **Follow the prompts:** The script will ask for your GitHub repository, installation paths, and database credentials. It will automatically:
+   - Clone the code.
+   - Generate your `.env` file.
+   - Install dependencies.
+   - Run database migrations.
+   - Launch the application via PM2.
+
+---
+
+### Option 2: Standard Deployment (Updates)
+Use this script to pull the latest changes and restart an existing instance.
+
+1. **Navigate to your backend folder:**
+   ```bash
+   cd /home/servicedepartmen/dealdesk-backend-2
+   ```
+2. **Run the deployer:**
    ```bash
    bash backend/deploy-server.sh
    ```
 
-### Troubleshooting
-If the database table for the Dev Agent is missing, run the migration manually:
+---
+
+### Database Migrations
+The system includes an automatic migration tool that ensures your database schema is up-to-date. This runs automatically during installation, but can be run manually if needed:
+
 ```bash
-node backend/scripts/run-migration.js
+cd backend
+node scripts/run-migration.js
 ```
+*Migrations are tracked in the `dd_migrations` table to ensure each script in `backend/sql/` is only applied once.*
 
 End of document

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 PM2_NAME="dealdesk-claire-dealview"
@@ -28,9 +28,11 @@ cp -f "$SIDE" "$BACKUP_DIR/claire_dealview_sidecar.js.before-$STAMP.bak"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
 s = SIDE.read_text(encoding="utf-8", errors="replace")
 
 def find_function(src, name):
@@ -114,7 +116,7 @@ new_render = r'''async function ddAutoRenderPrintPageToPdf(opts) {
   const filename = "deal-sheet-" + ddAutoSlug(property).slice(0, 70) + ".pdf";
   const absolutePath = path.join(folderPath, filename);
 
-  const printFilePath = "/home/servicedepartmen/public_html/dealdesk/print.html";
+  const printFilePath = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/print.html";
   if (!fs.existsSync(printFilePath)) {
     throw new Error("Local print.html was not found at " + printFilePath);
   }

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 HTML="$APPDIR/claire-dealdesk-view.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -34,11 +34,13 @@ npm install mysql2 dotenv >/tmp/revert-inspection-npm-$STAMP.log 2>&1 || {
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import re
 import sys
+import os
 
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
-HTML = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
+HTML = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
 
 CONTINGENCY_NOTE = (
     "Home Inspection contingency identified in the Memorandum of Offer to Purchase/Sell. "
@@ -157,7 +159,7 @@ node --check "$SIDE"
 cat > "$BACKEND/reset_current_maidstone_inspection_to_open.js" <<'NODE'
 #!/usr/bin/env node
 const fs = require("fs");
-require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+require("dotenv").config({ path: require("path").join(process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2", ".env") });
 const mysql = require("mysql2/promise");
 
 const TERMS = ["25 Maidstone", "Maidstone Lane", "Wading River"];

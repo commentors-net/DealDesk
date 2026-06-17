@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 DETAIL="$APPDIR/detail.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -28,10 +28,12 @@ done
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
-DETAIL = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
+DETAIL = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
 
 def replace_if_block(src, needle, replacement):
     pos = src.find(needle)
@@ -120,7 +122,7 @@ if SIDE.exists():
         if marker in side:
             side = side.replace(marker, marker + r'''
 
-const PUBLIC_DEALDESK_ROOT = "/home/servicedepartmen/public_html/dealdesk";
+const PUBLIC_DEALDESK_ROOT = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2");
 const SOURCE_DOC_ROOT = path.join(PUBLIC_DEALDESK_ROOT, "source-docs");
 const SOURCE_DOC_MANIFEST_ROOT = path.join(SOURCE_DOC_ROOT, "manifests");
 try { fs.mkdirSync(SOURCE_DOC_ROOT, { recursive: true }); fs.mkdirSync(SOURCE_DOC_MANIFEST_ROOT, { recursive: true }); } catch (err) {}

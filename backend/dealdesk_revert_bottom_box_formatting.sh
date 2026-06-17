@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DETAIL="/home/servicedepartmen/public_html/dealdesk/detail.html"
+DETAIL="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}/detail.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="/home/servicedepartmen/dealdesk-backend/backups/revert-bottom-box-formatting-$STAMP"
+BACKUP_DIR="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}/backups/revert-bottom-box-formatting-$STAMP"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -25,9 +25,11 @@ cp -f "$DETAIL" "$BACKUP_DIR/detail.html.before-revert-$STAMP.bak"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-DETAIL = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
+DETAIL = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
 html = DETAIL.read_text(encoding="utf-8", errors="replace")
 
 start = "<!-- DEALDESK_FORMAT_BOTTOM_BOXES_LIKE_GENERATED_V1 -->"
@@ -49,7 +51,7 @@ print("Removed formatting patch blocks:", removed)
 if removed == 0:
     print("NOTE: No DEALDESK_FORMAT_BOTTOM_BOXES_LIKE_GENERATED_V1 block was found.")
     print("If the page is still broken, restore from the backup made by that patch:")
-    print("/home/servicedepartmen/dealdesk-backend/backups/format-bottom-boxes-*")
+    print((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/backups/format-bottom-boxes-*")
 PY
 
 echo "****************************"

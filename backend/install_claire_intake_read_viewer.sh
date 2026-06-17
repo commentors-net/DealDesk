@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 CLAIRE_HTML="$APPDIR/claire-dealdesk-view.html"
 DETAIL="$APPDIR/detail.html"
@@ -32,8 +32,8 @@ cat > "$BACKEND/backfill_claire_result_into_manifests.js" <<'NODE'
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
-const MANIFEST_ROOT = "/home/servicedepartmen/public_html/dealdesk/source-docs/manifests";
-const CACHE_ROOT = "/home/servicedepartmen/dealdesk-backend/cache/claire-dealview";
+const MANIFEST_ROOT = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/source-docs/manifests";
+const CACHE_ROOT = (process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/cache/claire-dealview";
 function readJson(file){ try{return JSON.parse(fs.readFileSync(file,"utf8"));}catch(e){return null;} }
 function listJson(dir){ if(!fs.existsSync(dir))return []; return fs.readdirSync(dir).filter(n=>n.toLowerCase().endsWith(".json")).map(n=>path.join(dir,n)); }
 const cacheByUid = new Map();
@@ -63,10 +63,11 @@ node "$BACKEND/backfill_claire_result_into_manifests.js" || true
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
-CLAIRE_HTML = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
-DETAIL = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
+CLAIRE_HTML = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
+DETAIL = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
 
 if SIDE.exists():
     side = SIDE.read_text(encoding="utf-8", errors="replace")

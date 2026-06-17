@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DETAIL="/home/servicedepartmen/public_html/dealdesk/detail.html"
+DETAIL="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}/detail.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="/home/servicedepartmen/dealdesk-backend/backups/add-lender-financing-panel-$STAMP"
+BACKUP_DIR="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}/backups/add-lender-financing-panel-$STAMP"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -25,8 +25,9 @@ cp -f "$DETAIL" "$BACKUP_DIR/detail.html.before-$STAMP.bak"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 
-DETAIL = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
+DETAIL = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
 html = DETAIL.read_text(encoding="utf-8", errors="replace")
 
 start = "<!-- DEALDESK_LENDER_FINANCING_PANEL_V1 -->"
@@ -114,7 +115,7 @@ script = r'''
     val = value(val);
     return '<div style="display:grid;grid-template-columns:190px minmax(0,1fr);gap:8px;padding:7px 0;border-bottom:1px solid #eef2f7;">' +
       '<div style="font-size:12px;color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:.04em;">' + esc(label) + '</div>' +
-      '<div style="font-weight:800;color:#0f172a;overflow-wrap:anywhere;">' + esc(val || '—') + '</div>' +
+      '<div style="font-weight:800;color:#0f172a;overflow-wrap:anywhere;">' + esc(val || 'â€”') + '</div>' +
     '</div>';
   }
 

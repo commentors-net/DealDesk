@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
-const MANIFEST_ROOT = "/home/servicedepartmen/public_html/dealdesk/source-docs/manifests";
-const CACHE_ROOT = "/home/servicedepartmen/dealdesk-backend/cache/claire-dealview";
+try {
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
+} catch (err) {}
+const MANIFEST_ROOT = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/source-docs/manifests";
+const CACHE_ROOT = (process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/cache/claire-dealview";
 function readJson(file){ try{return JSON.parse(fs.readFileSync(file,"utf8"));}catch(e){return null;} }
 function listJson(dir){ if(!fs.existsSync(dir))return []; return fs.readdirSync(dir).filter(n=>n.toLowerCase().endsWith(".json")).map(n=>path.join(dir,n)); }
 const cacheByUid = new Map();

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 HTML="$APPDIR/claire-dealdesk-view.html"
 DETAIL="$APPDIR/detail.html"
@@ -29,12 +29,14 @@ done
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-BACKEND = Path("/home/servicedepartmen/dealdesk-backend")
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
-HTML = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
-DETAIL = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
+BACKEND = Path(os.environ.get("BACKEND_PATH", "/home/servicedepartmen/dealdesk-backend-2"))
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
+HTML = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
+DETAIL = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
 
 def insert_before_handle(src, block):
     idx = src.find("async function handle(req, res)")

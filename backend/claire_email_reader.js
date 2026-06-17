@@ -14,7 +14,7 @@
  * - rely on regex extraction as the brain
  *
  * Install dependencies once:
- *   cd /home/servicedepartmen/dealdesk-backend
+ *   cd /home/servicedepartmen/dealdesk-backend-2
  *   npm install openai imapflow mailparser
  *
  * Required:
@@ -28,11 +28,15 @@
  */
 
 const fs = require("fs");
+const path = require('path');
+try {
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
+} catch (err) {}
 const { ImapFlow } = require("imapflow");
 const { simpleParser } = require("mailparser");
 const OpenAI = require("openai");
 
-const CONFIG_PATH = "/home/servicedepartmen/dealdesk-backend/email-intake.config.json";
+const CONFIG_PATH = (process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/email-intake.config.json";
 
 function arg(name, fallback = "") {
   const i = process.argv.indexOf("--" + name);

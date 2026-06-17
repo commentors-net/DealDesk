@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const path = require("path");
+try {
+  require('dotenv').config({ path: path.join(__dirname, '.env') });
+} catch (err) {}
 
-const ROOT = "/home/servicedepartmen/public_html/dealdesk/source-docs";
+const ROOT = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/source-docs";
 const OUT = path.join(ROOT, "source-documents-index.json");
 
 function encPath(rel) {

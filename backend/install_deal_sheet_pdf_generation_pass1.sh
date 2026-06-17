@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 CLAIRE_HTML="$APPDIR/claire-dealdesk-view.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -34,10 +34,12 @@ npm install pdfkit >/tmp/deal-sheet-pdf-npm-$STAMP.log 2>&1 || {
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
-HTML = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
+HTML = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
 
 if not SIDE.exists():
     print("ERROR: Missing sidecar.")
@@ -131,7 +133,7 @@ if "CLAIRE_PDF_PUBLIC_ROOT" not in side:
     marker = 'const MAX_ATTACHMENT_BYTES = Number(process.env.CLAIRE_MAX_ATTACHMENT_BYTES || 25 * 1024 * 1024);'
     consts = r'''
 
-const CLAIRE_PDF_PUBLIC_ROOT = "/home/servicedepartmen/public_html/dealdesk";
+const CLAIRE_PDF_PUBLIC_ROOT = (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2");
 const CLAIRE_PDF_SOURCE_ROOT = path.join(CLAIRE_PDF_PUBLIC_ROOT, "source-docs");
 const CLAIRE_PDF_MANIFEST_ROOT = path.join(CLAIRE_PDF_SOURCE_ROOT, "manifests");
 try { fs.mkdirSync(CLAIRE_PDF_SOURCE_ROOT, { recursive: true }); fs.mkdirSync(CLAIRE_PDF_MANIFEST_ROOT, { recursive: true }); } catch (err) {}

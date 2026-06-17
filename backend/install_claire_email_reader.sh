@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_reader_sidecar.js"
 HTML="$APPDIR/claire-email-reader.html"
 HTACCESS="$APPDIR/.htaccess"
@@ -37,10 +37,10 @@ const { ImapFlow } = require("imapflow");
 const { simpleParser } = require("mailparser");
 
 try {
-  require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+  require("dotenv").config({ path: require("path").join(process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2", ".env") });
 } catch (err) {}
 
-const BACKEND = "/home/servicedepartmen/dealdesk-backend";
+const BACKEND = (process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2");
 const CONFIG_PATH = path.join(BACKEND, "email-intake.config.json");
 const HOST = "127.0.0.1";
 const PORT = Number(process.env.CLAIRE_READER_PORT || 3021);

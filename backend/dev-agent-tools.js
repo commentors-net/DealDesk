@@ -114,7 +114,7 @@ async function pm2_status() {
     return new Promise((resolve) => {
         // On Windows, PM2 might not be in path or named differently, 
         // but the spec expects it. We'll attempt it.
-        exec('pm2 status dealdesk-backend', (error, stdout, stderr) => {
+        exec('pm2 status dealdesk-backend-2', (error, stdout, stderr) => {
             resolve(stdout || stderr || 'PM2 command failed or not found.');
         });
     });

@@ -11,17 +11,17 @@ const { ImapFlow } = require("imapflow");
 const { simpleParser } = require("mailparser");
 
 try {
-  require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+  require("dotenv").config({ path: path.join(__dirname, '.env') });
 } catch (err) {}
 
-const BACKEND = "/home/servicedepartmen/dealdesk-backend";
+const BACKEND = process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2";
 const CONFIG_PATH = path.join(BACKEND, "email-intake.config.json");
 const HOST = "127.0.0.1";
 const PORT = Number(process.env.CLAIRE_DEALVIEW_PORT || 3022);
 const MODEL = process.env.CLAIRE_DEALVIEW_MODEL || process.env.CLAIRE_MODEL || process.env.OPENAI_MODEL || "gpt-4.1";
 const MAX_ATTACHMENT_BYTES = Number(process.env.CLAIRE_MAX_ATTACHMENT_BYTES || 25 * 1024 * 1024);
 
-const CLAIRE_PDF_PUBLIC_ROOT = "/home/servicedepartmen/public_html/dealdesk";
+const CLAIRE_PDF_PUBLIC_ROOT = process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2";
 const CLAIRE_PDF_SOURCE_ROOT = path.join(CLAIRE_PDF_PUBLIC_ROOT, "source-docs");
 const CLAIRE_PDF_MANIFEST_ROOT = path.join(CLAIRE_PDF_SOURCE_ROOT, "manifests");
 try { fs.mkdirSync(CLAIRE_PDF_SOURCE_ROOT, { recursive: true }); fs.mkdirSync(CLAIRE_PDF_MANIFEST_ROOT, { recursive: true }); } catch (err) {}
@@ -32,7 +32,7 @@ const CACHE_TTL_MS = Number(process.env.CLAIRE_DEALVIEW_CACHE_TTL_MS || 24 * 60 
 try { fs.mkdirSync(CACHE_DIR, { recursive: true }); } catch (err) {}
 
 
-const PUBLIC_DEALDESK_ROOT = "/home/servicedepartmen/public_html/dealdesk";
+const PUBLIC_DEALDESK_ROOT = process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2";
 const SOURCE_DOC_ROOT = path.join(PUBLIC_DEALDESK_ROOT, "source-docs");
 const SOURCE_DOC_MANIFEST_ROOT = path.join(SOURCE_DOC_ROOT, "manifests");
 try { fs.mkdirSync(SOURCE_DOC_ROOT, { recursive: true }); fs.mkdirSync(SOURCE_DOC_MANIFEST_ROOT, { recursive: true }); } catch (err) {}
@@ -1177,7 +1177,7 @@ async function clairePdfSaveDealSheet(body) {
 }
 
 
-const DD_AUTO_DOC_ROOT = "/home/servicedepartmen/public_html/dealdesk/generated-docs";
+const DD_AUTO_DOC_ROOT = path.join(process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2", "generated-docs");
 const DD_AUTO_MANIFEST_ROOT = path.join(DD_AUTO_DOC_ROOT, "manifests");
 try { fs.mkdirSync(DD_AUTO_DOC_ROOT, { recursive: true }); fs.mkdirSync(DD_AUTO_MANIFEST_ROOT, { recursive: true }); } catch (err) {}
 
@@ -1324,7 +1324,7 @@ async function ddAutoRenderPrintPageToPdf(opts) {
   const filename = "deal-sheet-" + ddAutoSlug(property).slice(0, 70) + ".pdf";
   const absolutePath = path.join(folderPath, filename);
 
-  const printFilePath = "/home/servicedepartmen/public_html/dealdesk/print.html";
+  const printFilePath = path.join(process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2", "print.html");
   if (!fs.existsSync(printFilePath)) {
     throw new Error("Local print.html was not found at " + printFilePath);
   }

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 HTML="$APPDIR/claire-dealdesk-view.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -25,9 +25,11 @@ cp -f "$HTML" "$APPDIR/backups/claire-dealdesk-view.html.before-json-unwrap-$STA
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-side = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
+side = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
 text = side.read_text(encoding="utf-8", errors="replace")
 
 def replace_function(src, name, new_func):
@@ -192,7 +194,7 @@ new_parse = r'''function parseJsonModelOutput(text) {
 text = replace_function(text, "parseJsonModelOutput", new_parse)
 side.write_text(text, encoding="utf-8")
 
-html = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
+html = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
 h = html.read_text(encoding="utf-8", errors="replace")
 
 if "function extractFirstJsonObjectFromText" not in h:

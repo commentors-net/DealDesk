@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const fs = require("fs");
-require("dotenv").config({ path: "/home/servicedepartmen/dealdesk-backend/.env" });
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const mysql = require("mysql2/promise");
 
 const TERMS = ["25 Maidstone", "Maidstone Lane", "Wading River"];

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dev Agent Console | Deal Desk</title>
     <link rel="stylesheet" href="dealdesk-ui-lock.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --primary-bg: #f8fafc;
@@ -85,8 +86,34 @@
             background-color: #f1f5f9;
             color: var(--text-main);
             border-bottom-left-radius: 2px;
-            white-space: pre-wrap;
         }
+
+        /* Markdown Styling */
+        .message.agent pre {
+            background: #1e293b;
+            color: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .message.agent code {
+            font-family: monospace;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .message.agent pre code {
+            background: transparent;
+            padding: 0;
+        }
+        .message.agent ul, .message.agent ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .message.agent p { margin: 8px 0; }
+        .message.agent p:first-child { margin-top: 0; }
+        .message.agent p:last-child { margin-bottom: 0; }
 
         .chat-input-area {
             padding: 20px;
@@ -229,9 +256,10 @@
         async function sendMessage() {
             const prompt = promptInput.value.trim();
             const token = tokenInput.value.trim();
+            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 
             if (!prompt) return;
-            if (!token) {
+            if (!token && !isLocal) {
                 alert('Please enter your Dev Agent Token from the .env file.');
                 return;
             }
@@ -272,7 +300,14 @@
         function appendMessage(role, text) {
             const div = document.createElement('div');
             div.className = `message ${role}`;
-            div.textContent = text;
+            
+            if (role === 'agent') {
+                // Use marked to parse markdown for agent responses
+                div.innerHTML = marked.parse(text);
+            } else {
+                div.textContent = text;
+            }
+            
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }

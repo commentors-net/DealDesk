@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
-BACKEND="/home/servicedepartmen/dealdesk-backend"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP_DIR="$APPDIR/backups/claire-integrate-$STAMP"
 
@@ -28,9 +28,9 @@ DD_CLAIRE_BACKUP_DIR="$BACKUP_DIR" python3 - <<'PY'
 from pathlib import Path
 import shutil
 
-APPDIR = Path("/home/servicedepartmen/public_html/dealdesk")
+APPDIR = Path(os.environ.get("FRONTEND_PATH", "/home/servicedepartmen/public_html/dealdesk-2"))
 import os
-BACKUP_DIR = Path(os.environ.get("DD_CLAIRE_BACKUP_DIR", "/home/servicedepartmen/public_html/dealdesk/backups/claire-integrate-manual"))
+BACKUP_DIR = Path(os.environ.get("DD_CLAIRE_BACKUP_DIR", (process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/backups/claire-integrate-manual"))
 BACKUP_DIR.mkdir(parents=True, exist_ok=True)
 
 STAMP = "__STAMP__"

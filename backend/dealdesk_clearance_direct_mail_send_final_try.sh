@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-DETAIL="/home/servicedepartmen/public_html/dealdesk/detail.html"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+DETAIL="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}/detail.html"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 PM2_NAME="dealdesk-claire-dealview"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -29,11 +29,13 @@ cp -f "$SIDE" "$BACKUP_DIR/claire_dealview_sidecar.js.before-$STAMP.bak"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import re
 import sys
+import os
 
-DETAIL = Path("/home/servicedepartmen/public_html/dealdesk/detail.html")
-SIDE = Path("/home/servicedepartmen/dealdesk-backend/claire_dealview_sidecar.js")
+DETAIL = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/detail.html")
+SIDE = Path((process.env.BACKEND_PATH || "/home/servicedepartmen/dealdesk-backend-2") + "/claire_dealview_sidecar.js")
 
 def find_function(src, name):
     starts = [src.find("function " + name), src.find("async function " + name)]

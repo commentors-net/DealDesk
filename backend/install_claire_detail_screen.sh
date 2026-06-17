@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
-BACKEND="/home/servicedepartmen/dealdesk-backend"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
 HTML="$APPDIR/claire-detail-reader.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 
@@ -92,7 +92,7 @@ cat > "$HTML" <<'HTML'
 <body>
 <header>
   <h1>CLAIRE Deal Detail Reader</h1>
-  <p>Fast email/document readout — easy review before creating an Accepted Offer file.</p>
+  <p>Fast email/document readout â€” easy review before creating an Accepted Offer file.</p>
 </header>
 
 <main>
@@ -241,7 +241,7 @@ cat > "$HTML" <<'HTML'
     for(let raw of lines){
       let line = raw.trim();
       if(!line) continue;
-      line = line.replace(/^[-•]\s*/, "");
+      line = line.replace(/^[-â€¢]\s*/, "");
       let m = line.match(/^([^:\t]{2,80})\t(.+)$/);
       if(!m) m = line.match(/^([^:]{2,80}):\s*(.+)$/);
       if(m){
@@ -311,10 +311,10 @@ cat > "$HTML" <<'HTML'
 
     $("detailView").innerHTML = `
       <div class="summary-grid">
-        <div class="metric"><div class="label">Subject</div><div class="value">${esc(email.subject || findValue(text, ["Subject"]) || "—")}</div></div>
-        <div class="metric"><div class="label">Property</div><div class="value">${esc(property || "—")}</div></div>
-        <div class="metric"><div class="label">Seller(s)</div><div class="value">${esc(sellers || "—")}</div></div>
-        <div class="metric"><div class="label">Purchaser(s)</div><div class="value">${esc(purchasers || "—")}</div></div>
+        <div class="metric"><div class="label">Subject</div><div class="value">${esc(email.subject || findValue(text, ["Subject"]) || "â€”")}</div></div>
+        <div class="metric"><div class="label">Property</div><div class="value">${esc(property || "â€”")}</div></div>
+        <div class="metric"><div class="label">Seller(s)</div><div class="value">${esc(sellers || "â€”")}</div></div>
+        <div class="metric"><div class="label">Purchaser(s)</div><div class="value">${esc(purchasers || "â€”")}</div></div>
       </div>
 
       <div class="section">

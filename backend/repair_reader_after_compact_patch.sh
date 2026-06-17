@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BACKEND="/home/servicedepartmen/dealdesk-backend"
-APPDIR="/home/servicedepartmen/public_html/dealdesk"
+BACKEND="${BACKEND_PATH:-/home/servicedepartmen/dealdesk-backend-2}"
+APPDIR="${FRONTEND_PATH:-/home/servicedepartmen/public_html/dealdesk-2}"
 SIDE="$BACKEND/claire_dealview_sidecar.js"
 HTML="$APPDIR/claire-dealdesk-view.html"
 STAMP="$(date +%Y%m%d-%H%M%S)"
@@ -41,9 +41,11 @@ cp -f "$LATEST_SIDE_BACKUP" "$SIDE"
 
 python3 - <<'PY'
 from pathlib import Path
+import os
 import sys
+import os
 
-HTML = Path("/home/servicedepartmen/public_html/dealdesk/claire-dealdesk-view.html")
+HTML = Path((process.env.FRONTEND_PATH || "/home/servicedepartmen/public_html/dealdesk-2") + "/claire-dealdesk-view.html")
 
 def replace_js_function(src, name, replacement):
     start = src.find(name)
