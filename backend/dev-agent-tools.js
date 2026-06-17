@@ -257,15 +257,17 @@ function validateCommand(command) {
             }
         }
     } else if (baseCmd === 'node') {
-        // Only allow node --check
         const arg = tokens[1];
-        if (arg !== '--check') {
-            throw new Error(`Access Denied: 'node ${arg || ""}' is not allowed. Only 'node --check' is allowed.`);
-        }
-        // Validate target path of node --check
-        const filePath = tokens[2];
-        if (filePath) {
-            getSafePath(filePath);
+        if (arg === 'scripts/run-migration.js') {
+            // Allowed
+        } else if (arg === '--check') {
+            // Validate target path of node --check
+            const filePath = tokens[2];
+            if (filePath) {
+                getSafePath(filePath);
+            }
+        } else {
+            throw new Error(`Access Denied: 'node ${arg || ""}' is not allowed. Only 'node --check' and 'node scripts/run-migration.js' are allowed.`);
         }
     }
 

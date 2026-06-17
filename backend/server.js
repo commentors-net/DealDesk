@@ -608,7 +608,8 @@ RULES:
 - Do not guess or invent information.
 - Redact all API keys, passwords, and secrets from your final answer.
 - Prefer existing files and existing structure.
-- When you want to modify a file, use the appropriate write or replacement tools.`;
+- When you want to modify a file, use the appropriate write or replacement tools.
+- To execute database schema changes (like creating or altering tables), write a new migration file (e.g., backend/sql/002_name.sql) and then run the migration runner command: node scripts/run-migration.js.`;
 
 const DEV_AGENT_TOOLS = [
   {
