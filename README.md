@@ -5,14 +5,14 @@ A real estate transaction management system for handling deals from "Accepted Of
 ## Core Components
 - **Frontend:** Standard UI for real estate operators to manage deals and clearance tasks.
 - **Backend:** Node.js API handling business logic, data persistence, and AI integrations.
-- **Dev Agent Bridge:** A secure, AI-powered diagnostic console for technical interrogation and debugging.
+- **Dev Agent Bridge:** A secure, supervised AI-powered console for codebase diagnostics, file editing, and executing whitelisted shell commands under developer approvals.
 
 ## Documentation
-- [User & Developer Manual](./docs/USER_MANUAL.md) - Detailed guide on using the frontend vs. the Dev Console.
+- [User & Developer Manual](./docs/USER_MANUAL.md) - Detailed guide on using the frontend, the Dev Console, and the interactive approval workflow.
 
 ## Server Installation
 
-There are two ways to install or update the Deal Desk system: using the **Interactive Installer** (recommended for fresh setups) or the **Standard Deployer** (for updates).
+There are two ways to install or update the Deal Desk system: using the **Interactive Installer & Deployer** (recommended for both fresh setups and updates) or the **Standard Deployer**.
 
 ### Prerequisites
 1. Ensure `git`, `node` (v16+), and `npm` are installed on the server.
@@ -21,20 +21,17 @@ There are two ways to install or update the Deal Desk system: using the **Intera
 
 ---
 
-### Option 1: Interactive Installation (Fresh Setup)
-This is the easiest way to setup a new instance (e.g., `dealdesk-2`).
+### Option 1: Interactive Installation & Deployment (Fresh Setup or Updates)
+This is the easiest way to setup a new instance or update an existing one.
 
-1. **Upload or create `install.sh`** on your server.
+1. **Upload or run `install.sh`** on your server.
 2. **Run the script:**
    ```bash
    bash install.sh
    ```
-3. **Follow the prompts:** The script will ask for your GitHub repository, installation paths, and database credentials. It will automatically:
-   - Clone the code.
-   - Generate your `.env` file.
-   - Install dependencies.
-   - Run database migrations.
-   - Launch the application via PM2.
+3. **Smart Workflows:**
+   *   **Fresh Setup:** Follow the prompts to configure your repository, directories, database credentials, and port. The script will clone, generate `.env`, install dependencies, run migrations, and launch PM2.
+   *   **Existing Update:** The script automatically detects existing installations (e.g. at `/home/servicedepartmen/dealdesk-backend-2` or the local dir). It prompts: *"Would you like to run an UPDATE/DEPLOYMENT using this configuration? [Y/n]"*. Selecting Yes automatically loads the configuration, pulls the latest code, runs database migrations, updates frontend files, and restarts PM2 without overwriting `.env` secrets.
 
 ---
 

@@ -216,9 +216,9 @@
 <body>
     <div class="sidebar">
         <h2 style="margin: 0; color: #f1f5f9; font-size: 20px;">Dev Console</h2>
-        <div class="dashboard-eyebrow">READ-ONLY BRIDGE V1</div>
+        <div class="dashboard-eyebrow" style="background:#0f766e; color:white; padding:3px 8px; border-radius:4px; font-size:10px; font-weight:700; display:inline-block; letter-spacing:0.05em; width:fit-content; margin-top:4px;">SUPERVISED DEV AGENT V2</div>
         
-        <div class="config-item">
+        <div class="config-item" style="margin-top:16px;">
             <label>Dev Agent Token</label>
             <input type="password" id="token" placeholder="Enter token from .env">
         </div>
@@ -230,20 +230,61 @@
 
     <div class="main-content">
         <div class="dashboard-hero" style="padding: 20px; margin-bottom: 0;">
-            <h1 class="dashboard-title" style="font-size: 24px;">Dev Agent Bridge</h1>
-            <p class="dashboard-lead" style="font-size: 14px;">Interrogate live application state securely through AI-driven read-only tools.</p>
+            <h1 class="dashboard-title" style="font-size: 24px; margin:0 0 6px 0;">Dev Agent Bridge</h1>
+            <p class="dashboard-lead" style="font-size: 14px; margin:0; color:#64748b;">Interrogate live application state and modify workspace files securely under human supervision.</p>
         </div>
 
         <div class="chat-container">
             <div class="chat-messages" id="chat-messages">
-                <div class="message agent">Hello! I am your Dev Agent. How can I help you investigate the application state today?</div>
+                <div class="message agent">Hello! I am your Dev Agent. How can I help you build or inspect the application today?</div>
             </div>
             <div class="chat-input-area">
-                <textarea id="prompt" rows="1" placeholder="Ask a development question... (e.g., 'What is the schema for dd_deals?')" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendMessage(); }"></textarea>
+                <textarea id="prompt" rows="1" placeholder="Ask a development question... (e.g., 'Check git status' or 'Write a test file')" onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); sendMessage(); }"></textarea>
                 <button id="send-btn" onclick="sendMessage()">Send</button>
             </div>
         </div>
     </div>
+
+    <!-- Approval Modal -->
+    <div id="approval-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.65); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:#ffffff; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0, 0, 0, 0.25); width:90%; max-width:650px; overflow:hidden; border:1px solid rgba(226, 232, 240, 0.8); display:flex; flex-direction:column; animation:modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);">
+            <div style="background: linear-gradient(135deg, #0f766e, #115e59); padding:20px 24px; color:white; display:flex; justify-content:space-between; align-items:center;">
+                <h3 id="modal-title" style="margin:0; font-size:18px; font-weight:600; letter-spacing:-0.01em;">Action Pending Approval</h3>
+                <span id="modal-badge" style="background:rgba(255,255,255,0.2); padding:4px 10px; border-radius:12px; font-size:12px; font-weight:600; font-family:monospace; text-transform:uppercase;">WRITE_FILE</span>
+            </div>
+            <div style="padding:24px; display:flex; flex-direction:column; gap:16px; overflow-y:auto; max-height:70vh;">
+                <div>
+                    <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:6px;">Context (User Prompt)</label>
+                    <div id="modal-user-prompt" style="font-size:14px; color:#334155; line-height:1.5; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0; font-style:italic;"></div>
+                </div>
+                <div>
+                    <label id="modal-target-label" style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:6px;">Target File</label>
+                    <div id="modal-target-path" style="font-family:monospace; font-size:13px; color:#0f766e; background:#f0fdfa; padding:10px 14px; border-radius:8px; border:1px solid #ccfbf1; font-weight:600;"></div>
+                </div>
+                <div>
+                    <label id="modal-content-label" style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:6px;">Proposed Changes / Command</label>
+                    <div id="modal-diff-container" style="border-radius:8px; overflow:hidden; border:1px solid #e2e8f0; font-family:monospace; font-size:13px; max-height:280px; overflow-y:auto; background:#1e293b; color:#f8fafc; padding:14px; line-height:1.5;"></div>
+                </div>
+                <div id="rejection-reason-container" style="display:none;">
+                    <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; color:#94a3b8; margin-bottom:6px;">Reason for Rejection</label>
+                    <textarea id="rejection-reason" rows="2" placeholder="Explain why this was rejected..." style="width:100%; box-sizing:border-box; padding:10px; border-radius:8px; border:1px solid #cbd5e1; font-size:14px; resize:none;"></textarea>
+                </div>
+            </div>
+            <div style="background:#f8fafc; padding:16px 24px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px;">
+                <button id="modal-reject-btn" style="background:#ef4444; border:none; padding:10px 20px; border-radius:8px; font-weight:600; color:white; cursor:pointer;" onclick="showRejectionInput()">Reject</button>
+                <button id="modal-confirm-reject-btn" style="display:none; background:#b91c1c; border:none; padding:10px 20px; border-radius:8px; font-weight:600; color:white; cursor:pointer;" onclick="submitRejection()">Confirm Reject</button>
+                <button id="modal-cancel-reject-btn" style="display:none; background:#64748b; border:none; padding:10px 20px; border-radius:8px; font-weight:600; color:white; cursor:pointer;" onclick="cancelRejection()">Cancel</button>
+                <button id="modal-approve-btn" style="background:#10b981; border:none; padding:10px 20px; border-radius:8px; font-weight:600; color:white; cursor:pointer;" onclick="approveAction()">Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes modalScale {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
 
     <script>
         const chatMessages = document.getElementById('chat-messages');
@@ -321,6 +362,192 @@
                 sendBtn.textContent = 'Send';
                 promptInput.focus();
             }
+        }
+
+        const approvalModal = document.getElementById('approval-modal');
+        const modalBadge = document.getElementById('modal-badge');
+        const modalUserPrompt = document.getElementById('modal-user-prompt');
+        const modalTargetLabel = document.getElementById('modal-target-label');
+        const modalTargetPath = document.getElementById('modal-target-path');
+        const modalContentLabel = document.getElementById('modal-content-label');
+        const modalDiffContainer = document.getElementById('modal-diff-container');
+        
+        const modalRejectBtn = document.getElementById('modal-reject-btn');
+        const modalConfirmRejectBtn = document.getElementById('modal-confirm-reject-btn');
+        const modalCancelRejectBtn = document.getElementById('modal-cancel-reject-btn');
+        const modalApproveBtn = document.getElementById('modal-approve-btn');
+        const rejectionReasonContainer = document.getElementById('rejection-reason-container');
+        const rejectionReasonInput = document.getElementById('rejection-reason');
+
+        let currentActionId = null;
+        let isPolling = true;
+
+        async function pollPendingActions() {
+            if (!isPolling) return;
+            const token = tokenInput.value.trim();
+            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            
+            // Only poll if authorized or local
+            if (!token && !isLocal) return;
+
+            try {
+                const response = await fetch('/api/dev-agent/pending', {
+                    headers: { 'x-dev-agent-token': token }
+                });
+                const data = await response.json();
+                if (data.ok && data.pending && data.pending.length > 0) {
+                    showApprovalModal(data.pending[0]);
+                }
+            } catch (err) {
+                console.error('Failed to poll pending actions:', err);
+            }
+        }
+
+        // Start polling loop
+        setInterval(pollPendingActions, 2000);
+
+        function showApprovalModal(action) {
+            isPolling = false; // Pause polling while modal is open
+            currentActionId = action.id;
+
+            modalBadge.textContent = action.type;
+            modalUserPrompt.textContent = action.user_prompt || "N/A";
+            
+            // Reset rejection layout
+            rejectionReasonContainer.style.display = 'none';
+            rejectionReasonInput.value = '';
+            modalRejectBtn.style.display = 'block';
+            modalConfirmRejectBtn.style.display = 'none';
+            modalCancelRejectBtn.style.display = 'none';
+            modalApproveBtn.style.display = 'block';
+
+            if (action.type === 'write_file') {
+                modalTargetLabel.style.display = 'block';
+                modalTargetPath.style.display = 'block';
+                modalTargetPath.textContent = action.details.file_path;
+                modalContentLabel.textContent = 'File Content';
+                modalDiffContainer.textContent = action.details.content;
+            } else if (action.type === 'replace_file_content') {
+                modalTargetLabel.style.display = 'block';
+                modalTargetPath.style.display = 'block';
+                modalTargetPath.textContent = action.details.file_path;
+                modalContentLabel.textContent = 'Replacement Details';
+                
+                // Construct a diff block
+                modalDiffContainer.innerHTML = '';
+                
+                const labelTarget = document.createElement('div');
+                labelTarget.style.color = '#ef4444';
+                labelTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                labelTarget.style.padding = '8px';
+                labelTarget.style.marginBottom = '8px';
+                labelTarget.style.borderRadius = '4px';
+                labelTarget.innerHTML = `<strong>- Target Content:</strong><pre style="margin-top:6px; color:#f87171; white-space:pre-wrap; word-break:break-all;">${escapeHtml(action.details.target_content)}</pre>`;
+                
+                const labelRepl = document.createElement('div');
+                labelRepl.style.color = '#10b981';
+                labelRepl.style.background = 'rgba(16, 185, 129, 0.15)';
+                labelRepl.style.padding = '8px';
+                labelRepl.style.borderRadius = '4px';
+                labelRepl.innerHTML = `<strong>+ Replacement Content:</strong><pre style="margin-top:6px; color:#34d399; white-space:pre-wrap; word-break:break-all;">${escapeHtml(action.details.replacement_content)}</pre>`;
+                
+                modalDiffContainer.appendChild(labelTarget);
+                modalDiffContainer.appendChild(labelRepl);
+            } else if (action.type === 'run_command') {
+                modalTargetLabel.style.display = 'none';
+                modalTargetPath.style.display = 'none';
+                modalContentLabel.textContent = 'Command Line';
+                modalDiffContainer.textContent = action.details.command;
+            }
+
+            approvalModal.style.display = 'flex';
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showRejectionInput() {
+            rejectionReasonContainer.style.display = 'block';
+            modalRejectBtn.style.display = 'none';
+            modalConfirmRejectBtn.style.display = 'block';
+            modalCancelRejectBtn.style.display = 'block';
+            modalApproveBtn.style.display = 'none';
+            rejectionReasonInput.focus();
+        }
+
+        function cancelRejection() {
+            rejectionReasonContainer.style.display = 'none';
+            modalRejectBtn.style.display = 'block';
+            modalConfirmRejectBtn.style.display = 'none';
+            modalCancelRejectBtn.style.display = 'none';
+            modalApproveBtn.style.display = 'block';
+        }
+
+        async function approveAction() {
+            if (!currentActionId) return;
+            const token = tokenInput.value.trim();
+            
+            try {
+                modalApproveBtn.disabled = true;
+                const response = await fetch('/api/dev-agent/approve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-dev-agent-token': token
+                    },
+                    body: JSON.stringify({ action_id: currentActionId })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    closeModal();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            } finally {
+                modalApproveBtn.disabled = false;
+            }
+        }
+
+        async function submitRejection() {
+            if (!currentActionId) return;
+            const token = tokenInput.value.trim();
+            const reason = rejectionReasonInput.value.trim() || 'Rejected by developer.';
+            
+            try {
+                modalConfirmRejectBtn.disabled = true;
+                const response = await fetch('/api/dev-agent/reject', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-dev-agent-token': token
+                    },
+                    body: JSON.stringify({ action_id: currentActionId, reason })
+                });
+                const data = await response.json();
+                if (data.ok) {
+                    closeModal();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('Network error: ' + err.message);
+            } finally {
+                modalConfirmRejectBtn.disabled = false;
+            }
+        }
+
+        function closeModal() {
+            approvalModal.style.display = 'none';
+            currentActionId = null;
+            isPolling = true; // Resume polling
         }
 
         // Auto-expand textarea
