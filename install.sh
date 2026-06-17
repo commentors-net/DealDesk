@@ -29,6 +29,7 @@ load_env_file() {
                     PM2_NAME) PM2_NAME="$value" ;;
                     SYS_USER) SYS_USER="$value" ;;
                     SYS_GROUP) SYS_GROUP="$value" ;;
+                    AUTH_USER_FILE) AUTH_USER_FILE="$value" ;;
                 esac
             fi
         done < "$env_file"
@@ -62,11 +63,12 @@ if [ ! -z "$EXISTING_ENV" ]; then
         PM2_NAME=${PM2_NAME:-$(basename "$TARGET_BACKEND")}
         SERVER_PORT=${SERVER_PORT:-3017}
         
-        # Load user/group defaults in update mode if not in env
+        # Load user/group/htpasswd defaults in update mode if not in env
         DEFAULT_USER=$(logname 2>/dev/null || echo $SUDO_USER || whoami)
         DEFAULT_GROUP=$(id -gn "$DEFAULT_USER" 2>/dev/null || echo "$DEFAULT_USER")
         SYS_USER=${SYS_USER:-$DEFAULT_USER}
         SYS_GROUP=${SYS_GROUP:-$DEFAULT_GROUP}
+        AUTH_USER_FILE=${AUTH_USER_FILE:-/home/servicedepartmen/.dealdesk_htpasswd}
 
         echo "Loaded existing configuration:"
         echo "  Backend Path:  $TARGET_BACKEND"
@@ -75,6 +77,7 @@ if [ ! -z "$EXISTING_ENV" ]; then
         echo "  Server Port:   $SERVER_PORT"
         echo "  PM2 Name:      $PM2_NAME"
         echo "  System Owner:  $SYS_USER:$SYS_GROUP"
+        echo "  AuthUserFile:  $AUTH_USER_FILE"
         echo ""
     fi
 fi
@@ -102,7 +105,7 @@ if [ "$IS_UPDATE" = false ]; then
     read -s -p "Database Password: " DB_PASSWORD
     echo ""
 
-    # Gather System User & Group
+    # Gather System User, Group & AuthUserFile
     DEFAULT_USER=$(logname 2>/dev/null || echo $SUDO_USER || whoami)
     DEFAULT_GROUP=$(id -gn "$DEFAULT_USER" 2>/dev/null || echo "$DEFAULT_USER")
 
@@ -111,6 +114,9 @@ if [ "$IS_UPDATE" = false ]; then
 
     read -p "System Owner Group [$DEFAULT_GROUP]: " SYS_GROUP
     SYS_GROUP=${SYS_GROUP:-$DEFAULT_GROUP}
+
+    read -p "AuthUserFile Path [/home/servicedepartmen/.dealdesk_htpasswd]: " AUTH_USER_FILE
+    AUTH_USER_FILE=${AUTH_USER_FILE:-/home/servicedepartmen/.dealdesk_htpasswd}
     echo ""
 fi
 
@@ -143,6 +149,7 @@ BACKEND_PATH=$TARGET_BACKEND
 FRONTEND_PATH=$TARGET_FRONTEND
 SYS_USER=$SYS_USER
 SYS_GROUP=$SYS_GROUP
+AUTH_USER_FILE=$AUTH_USER_FILE
 EOF
 fi
 
@@ -194,7 +201,23 @@ mkdir -p "$TARGET_FRONTEND"
 cp "../frontend/dev-console.html" "$TARGET_FRONTEND/"
 cp "../frontend/dev-console.html" "$TARGET_FRONTEND/index.html"
 cp "../frontend/dealdesk-ui-lock.css" "$TARGET_FRONTEND/"
-cp "../frontend/.htaccess" "$TARGET_FRONTEND/"
+
+# Dynamically generate .htaccess with configured port and htpasswd path
+cat <<EOF > "$TARGET_FRONTEND/.htaccess"
+AuthType Basic
+AuthName "Dev Console"
+AuthUserFile $AUTH_USER_FILE
+Require valid-user
+
+RewriteEngine On
+
+# Force HTTPS always
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Route all API calls generically to the local Node backend
+RewriteRule ^api/(.*)$ http://127.0.0.1:$SERVER_PORT/api/\$1 [P,L,QSA]
+EOF
 
 # 8. Start/Restart Process
 echo "Launching via PM2..."
