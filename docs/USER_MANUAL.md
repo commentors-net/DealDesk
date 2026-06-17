@@ -44,6 +44,23 @@ To ensure system safety, the Dev Agent cannot write files or execute commands au
     *   It requests a `run_command` call with `npm test`. The UI displays the command. The developer clicks **Approve**.
 5.  **Outcome:** The files are updated and tests are executed successfully, with all actions audited in `dd_dev_agent_audit`.
 
+### 2.2 Database Schema Migrations
+For database schema modifications (such as creating tables, altering columns, or adding indexes):
+1.  **Migration File Creation:** The Dev Agent writes a version-controlled SQL migration file to `backend/sql/` (e.g., `002_person.sql`). The UI prompts you to review and approve the file contents.
+2.  **Migration Execution:** The agent requests permission to run `node scripts/run-migration.js` via the console's command execution flow.
+3.  **Approval Flow:** Review the SQL diff and the command in the approval modal, then click **Approve** to run it safely.
+
+---
+
+## 3. Current Sandbox Limitations & Roadmap
+
+### 3.1 Current Environment Limitations
+*   **Folder Sandboxing:** The Dev Agent is strictly sandboxed to the project directory. It can only read, write, modify files, and run commands **inside the current environment folder** (e.g., `/home/servicedepartmen/dev-console/`). Any attempt to access or execute scripts outside this folder is blocked by security guards.
+*   **Read-Only DB Queries:** Direct database write/DDL execution (like ad-hoc `CREATE TABLE` or `DELETE`) is disabled inside the interactive chat window. Database modifications must go through version-controlled migrations as described in section 2.2.
+
+### 3.2 Next Iteration Roadmap
+*   **System-Wide Execution:** The next iteration is planned to support executing actions and configuration updates **outside the current folder environment** (such as managing OS-level settings, updating Apache/Nginx configuration outside the workspace, setting up PAM basic auth integration, and general server system administration tasks).
+
 ---
 
 ## Summary Comparison
