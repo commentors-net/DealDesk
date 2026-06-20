@@ -780,13 +780,27 @@ const DEV_AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'delete_path',
-      description: 'Deletes a file or directory recursively inside whitelisted workspace directories (devapps or public_html).',
+      description: 'Deletes a file or directory recursively inside the authorized workspace home directory sandbox.',
       parameters: {
         type: 'object',
         properties: {
           path_to_delete: { type: 'string', description: 'Relative or absolute directory/file path to delete, e.g., "../devapps/hr-system".' }
         },
         required: ['path_to_delete']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'check_port',
+      description: 'Checks if a network port is currently in use on the local machine.',
+      parameters: {
+        type: 'object',
+        properties: {
+          port: { type: 'integer', description: 'Port number to check, e.g. 3020.' }
+        },
+        required: ['port']
       }
     }
   }

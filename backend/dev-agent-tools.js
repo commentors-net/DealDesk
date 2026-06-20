@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const child_process = require('child_process');
 
 /**
  * Redacts sensitive information from strings.
@@ -243,10 +243,39 @@ function validateCommand(command) {
 
     // Whitelist of allowed subcommands
     if (baseCmd === 'git') {
-        const allowedGitSub = ['status', 'diff', 'log', 'show', 'branch'];
+        const allowedGitSub = ['status', 'diff', 'log', 'show', 'branch', 'checkout', 'add', 'commit'];
         const sub = tokens[1];
         if (!sub || !allowedGitSub.includes(sub)) {
             throw new Error(`Access Denied: 'git ${sub || ""}' is not allowed. Whitelisted git subcommands: ${allowedGitSub.join(', ')}.`);
+        }
+        
+        if (sub === 'checkout') {
+            const arg1 = tokens[2];
+            if (arg1 === '-b') {
+                const branchName = tokens[3];
+                if (!branchName || !/^[a-zA-Z0-9-_/]+$/.test(branchName)) {
+                    throw new Error(`Access Denied: Invalid branch name '${branchName || ""}'.`);
+                }
+            } else if (arg1) {
+                if (!/^[a-zA-Z0-9-_/]+$/.test(arg1)) {
+                    throw new Error(`Access Denied: Invalid checkout target '${arg1}'.`);
+                }
+            }
+        } else if (sub === 'add') {
+            for (let i = 2; i < tokens.length; i++) {
+                const targetPath = tokens[i];
+                if (targetPath === '.') continue;
+                getSafePath(targetPath);
+            }
+        } else if (sub === 'commit') {
+            const arg1 = tokens[2];
+            if (arg1 !== '-m') {
+                throw new Error("Access Denied: git commit must be run with the '-m' flag.");
+            }
+            const msgTokens = tokens.slice(3);
+            if (msgTokens.length === 0) {
+                throw new Error("Access Denied: git commit message cannot be empty.");
+            }
         }
     } else if (baseCmd === 'npm') {
         const allowedNpmSub = ['run', 'test', 'install', 'build'];
@@ -254,12 +283,30 @@ function validateCommand(command) {
         if (!sub || !allowedNpmSub.includes(sub)) {
             throw new Error(`Access Denied: 'npm ${sub || ""}' is not allowed. Whitelisted npm subcommands: ${allowedNpmSub.join(', ')}.`);
         }
-        // If it's npm run, ensure we check the script name
         if (sub === 'run') {
             const script = tokens[2];
-            const allowedScripts = ['build', 'test', 'dev', 'start'];
+            const allowedScripts = ['build', 'test', 'dev', 'start', 'lint'];
             if (!script || !allowedScripts.includes(script)) {
                 throw new Error(`Access Denied: 'npm run ${script || ""}' is not allowed. Whitelisted scripts: ${allowedScripts.join(', ')}.`);
+            }
+            if (script === 'lint') {
+                for (let i = 3; i < tokens.length; i++) {
+                    const token = tokens[i];
+                    if (token !== '--fix' && token !== '--') {
+                        throw new Error(`Access Denied: Argument '${token}' is not allowed for npm run lint.`);
+                    }
+                }
+            }
+        } else if (sub === 'install') {
+            for (let i = 2; i < tokens.length; i++) {
+                const token = tokens[i];
+                const allowedFlags = ['-D', '--save-dev', '-g', '--save', '--no-save', '--silent', '--no-audit', '--no-fund'];
+                if (allowedFlags.includes(token)) {
+                    continue;
+                }
+                if (!/^[a-zA-Z0-9-_@/]+$/.test(token)) {
+                    throw new Error(`Access Denied: Invalid npm package name or parameter '${token}'.`);
+                }
             }
         }
     } else if (baseCmd === 'node') {
@@ -267,7 +314,6 @@ function validateCommand(command) {
         if (arg === 'scripts/run-migration.js') {
             // Allowed
         } else if (arg === '--check') {
-            // Validate target path of node --check
             const filePath = tokens[2];
             if (filePath) {
                 getSafePath(filePath);
@@ -285,6 +331,11 @@ function validateCommand(command) {
             const script = tokens[2];
             if (script && !script.endsWith('.js') && !script.endsWith('.json')) {
                 throw new Error(`Access Denied: Only JS files or ecosystem config files can be launched via PM2.`);
+            }
+        }
+        if (sub === 'logs') {
+            if (!trimmed.includes('--no-daemon')) {
+                return `${trimmed} --no-daemon`;
             }
         }
     }
@@ -306,7 +357,7 @@ async function run_command(args) {
 
     return new Promise((resolve) => {
         // Execute with a timeout of 15 seconds
-        exec(validatedCmd, { cwd: execCwd, timeout: 15000 }, (error, stdout, stderr) => {
+        child_process.exec(validatedCmd, { cwd: execCwd, timeout: 15000 }, (error, stdout, stderr) => {
             let output = '';
             if (stdout) output += stdout;
             if (stderr) output += `\nStderr:\n${stderr}`;
@@ -329,7 +380,7 @@ async function pm2_status() {
     return new Promise((resolve) => {
         // On Windows, PM2 might not be in path or named differently, 
         // but the spec expects it. We'll attempt it.
-        exec('pm2 status dealdesk-backend-2', (error, stdout, stderr) => {
+        child_process.exec('pm2 status dealdesk-backend-2', (error, stdout, stderr) => {
             resolve(stdout || stderr || 'PM2 command failed or not found.');
         });
     });
@@ -341,7 +392,7 @@ async function pm2_status() {
 async function node_check() {
     return new Promise((resolve) => {
         const serverPath = path.join(__dirname, 'server.js');
-        exec(`node --check "${serverPath}"`, (error, stdout, stderr) => {
+        child_process.exec(`node --check "${serverPath}"`, (error, stdout, stderr) => {
             resolve(stderr || stdout || 'Syntax OK');
         });
     });
@@ -565,6 +616,41 @@ async function delete_path(args) {
     return `Success: Deleted path ${path.relative(parentDir, safePath)}`;
 }
 
+/**
+ * Tool: check_port
+ * Checks if a port is currently in use on the loopback interface.
+ */
+async function check_port(args) {
+    const { port } = args;
+    if (port === undefined || port === null || isNaN(port)) {
+        throw new Error("Missing or invalid parameter: 'port' is required and must be a number.");
+    }
+    const portNum = parseInt(port, 10);
+    if (portNum < 1024 || portNum > 65535) {
+        throw new Error("Port number must be between 1024 and 65535.");
+    }
+
+    return new Promise((resolve) => {
+        const net = require('net');
+        const server = net.createServer();
+
+        server.once('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                resolve(JSON.stringify({ port: portNum, in_use: true, status: 'occupied' }));
+            } else {
+                resolve(JSON.stringify({ port: portNum, in_use: false, status: 'error', error: err.message }));
+            }
+        });
+
+        server.once('listening', () => {
+            server.close();
+            resolve(JSON.stringify({ port: portNum, in_use: false, status: 'free' }));
+        });
+
+        server.listen(portNum, '127.0.0.1');
+    });
+}
+
 module.exports = {
     redact,
     read_file,
@@ -579,7 +665,8 @@ module.exports = {
     get_deal_clearance_snapshot,
     get_dashboard_snapshot,
     list_directory,
-    delete_path
+    delete_path,
+    check_port
 };
 
 
