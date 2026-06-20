@@ -60,10 +60,8 @@ For database schema modifications (such as creating tables, altering columns, or
 The V3 Dev Agent console has the capability to dynamically spin up and tear down independent sibling web applications (such as a separate public HR system or invoice portal) inside parent-relative hosting directories.
 
 ### 3.1 Workspace Safe Directories
-The sandboxing rules in `getSafePath` permit operations inside three specific workspace roots:
-1.  **Deal Desk Root:** `/home/servicedepartmen/dealdesk-backend-2`
-2.  **Sibling Backend Root:** `/home/servicedepartmen/devapps/`
-3.  **Sibling Frontend Root:** `/home/servicedepartmen/public_html/`
+The sandboxing rules in `getSafePath` permit operations inside the entire user home directory sandbox:
+*   **Authorized Home Directory:** `/home/servicedepartmen/` (enabling access to sibling app directories like `devapps/` and `public_html/` alongside Deal Desk itself).
 
 The primary Deal Desk application directories, base hosting folders, and Git/node_modules files are strictly protected from deletion.
 
@@ -110,4 +108,42 @@ To run both simultaneously in VS Code, use the **Run and Debug** sidebar and sel
 *   **Dev Mode (Backend + Console)**
 
 This will launch the backend server and open the Developer Console side-by-side.
+
+### Testing on a Live Linux Server (Deployment & Verification)
+
+#### Step 1: Deploy to the Server
+1. Commit and push the changes to your git repository.
+2. SSH into your server, navigate to the backend root directory (e.g. `/home/servicedepartmen/dealdesk-backend-2`), and pull the latest changes:
+   ```bash
+   git pull
+   ```
+3. Restart the PM2 process manager to load the updated code:
+   ```bash
+   pm2 restart dealdesk-backend-2
+   ```
+
+#### Step 2: Open the Dev Console UI
+1. Navigate to the secure Dev Console path in your web browser:
+   `https://yourdomain.com/dev-console.html` (or your configured server domain).
+2. Authenticate using the system basic auth credentials (stored in `/home/servicedepartmen/.dealdesk_htpasswd`).
+3. Enter your secret `DEALDESK_DEV_AGENT_TOKEN` in the top console bar to connect to the agent.
+
+#### Step 3: Run Validation Prompts
+You can verify the new junior developer capabilities by sending the following prompts directly in the console:
+
+*   **Test Log Tailing (PM2 logs):**
+    *   *Prompt:* `"Show me the last 50 lines of logs for dealdesk-backend-2"`
+    *   *Verification:* The agent executes `pm2 logs dealdesk-backend-2 --lines 50` under the hood. Confirm the command automatically appends `--no-daemon` and resolves instantly in the console without hitting connection timeouts.
+*   **Test ESLint Autofixing:**
+    *   *Prompt:* `"Run the code formatter to fix styles in backend/dev-agent-tools.js"`
+    *   *Verification:* Review and approve the `npm run lint -- --fix` command popup. Confirm style warnings are auto-formatted.
+*   **Test Dependency Installs:**
+    *   *Prompt:* `"Install the public npm package uuid as a development dependency"`
+    *   *Verification:* Approve the `npm install uuid -D` command block. Confirm that standard package names are allowed, while path injections (like `npm install ../other-path`) are strictly blocked by the validator.
+*   **Test Git Branching & Commits:**
+    *   *Prompt:* `"Checkout a new branch called dev-test, stage backend/dev-agent-tools.js, and commit changes with message 'feat: support check_port'"`
+    *   *Verification:* Approve each step of the git workflow. Confirm that `git checkout`, `git add`, and `git commit` run successfully inside the sandbox boundaries.
+*   **Test Port Conflicts:**
+    *   *Prompt:* `"Is port 3020 free on the server?"`
+    *   *Verification:* The agent invokes the `check_port` tool. Confirm it returns a JSON response indicating the port status (e.g., `{ "port": 3020, "in_use": false, "status": "free" }`) without needing manual command approvals.
 
