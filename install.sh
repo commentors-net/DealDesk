@@ -66,7 +66,10 @@ if [ ! -z "$EXISTING_ENV" ]; then
         SERVER_PORT=${SERVER_PORT:-3017}
         
         # Load user/group/htpasswd defaults in update mode if not in env
-        DEFAULT_USER=$(logname 2>/dev/null || echo $SUDO_USER || whoami)
+        DEFAULT_USER=$(logname 2>/dev/null || true)
+        if [ -z "$DEFAULT_USER" ]; then
+            DEFAULT_USER=${SUDO_USER:-$(whoami)}
+        fi
         DEFAULT_GROUP=$(id -gn "$DEFAULT_USER" 2>/dev/null || echo "$DEFAULT_USER")
         SYS_USER=${SYS_USER:-$DEFAULT_USER}
         SYS_GROUP=${SYS_GROUP:-$DEFAULT_GROUP}
@@ -108,7 +111,10 @@ if [ "$IS_UPDATE" = false ]; then
     echo ""
 
     # Gather System User, Group & AuthUserFile
-    DEFAULT_USER=$(logname 2>/dev/null || echo $SUDO_USER || whoami)
+    DEFAULT_USER=$(logname 2>/dev/null || true)
+    if [ -z "$DEFAULT_USER" ]; then
+        DEFAULT_USER=${SUDO_USER:-$(whoami)}
+    fi
     DEFAULT_GROUP=$(id -gn "$DEFAULT_USER" 2>/dev/null || echo "$DEFAULT_USER")
 
     read -p "System Owner User [$DEFAULT_USER]: " SYS_USER
@@ -141,10 +147,37 @@ if [ ! -d "$TARGET_BACKEND" ]; then
     git clone "$GIT_REPO" "$TARGET_BACKEND"
     cd "$TARGET_BACKEND"
 else
-    echo "Directory exists. Pulling latest code..."
-    cd "$TARGET_BACKEND"
-    git config --global --add safe.directory "$TARGET_BACKEND" 2>/dev/null || true
-    git pull
+    # Directory exists: it may be a git checkout or just a plain folder.
+    if [ -d "$TARGET_BACKEND/.git" ]; then
+        echo "Directory exists and is a git repository. Pulling latest code..."
+        cd "$TARGET_BACKEND"
+        git config --global --add safe.directory "$TARGET_BACKEND" 2>/dev/null || true
+        git pull
+    else
+        echo "------------------------------------------------"
+        echo "Target path exists but is not a git repository:"
+        echo "  $TARGET_BACKEND"
+        echo "------------------------------------------------"
+        echo "Choose one option:"
+        echo "  [1] Backup folder and fresh clone (recommended)"
+        echo "  [2] Abort and exit"
+        read -p "Selection [1/2]: " NON_GIT_ACTION
+        NON_GIT_ACTION=${NON_GIT_ACTION:-1}
+
+        if [ "$NON_GIT_ACTION" = "1" ]; then
+            TS=$(date +%Y%m%d-%H%M%S)
+            BACKUP_PATH="${TARGET_BACKEND}.backup-${TS}"
+            echo "Backing up existing folder to: $BACKUP_PATH"
+            mv "$TARGET_BACKEND" "$BACKUP_PATH"
+            echo "Cloning fresh repository..."
+            mkdir -p "$(dirname "$TARGET_BACKEND")"
+            git clone "$GIT_REPO" "$TARGET_BACKEND"
+            cd "$TARGET_BACKEND"
+        else
+            echo "Aborting installation at user request."
+            exit 1
+        fi
+    fi
 fi
 
 # 3. Create/Update .env file
