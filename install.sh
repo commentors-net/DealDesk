@@ -44,6 +44,8 @@ load_env_file() {
 EXISTING_ENV=""
 if [ -f "backend/.env" ]; then
     EXISTING_ENV="backend/.env"
+elif [ -f "/home/servicedepartmen/dev-console-1/backend/.env" ]; then
+    EXISTING_ENV="/home/servicedepartmen/dev-console-1/backend/.env"
 elif [ -f "/home/servicedepartmen/dealdesk-backend-2/backend/.env" ]; then
     EXISTING_ENV="/home/servicedepartmen/dealdesk-backend-2/backend/.env"
 fi
@@ -60,9 +62,9 @@ if [ ! -z "$EXISTING_ENV" ]; then
     if [[ "$opt" =~ ^[Yy]$ ]]; then
         IS_UPDATE=true
         load_env_file "$EXISTING_ENV"
-        TARGET_BACKEND=${TARGET_BACKEND:-/home/servicedepartmen/dealdesk-backend-2}
+        TARGET_BACKEND=${TARGET_BACKEND:-/home/servicedepartmen/dev-console-1}
         TARGET_FRONTEND=${TARGET_FRONTEND:-/home/servicedepartmen/public_html/dealdesk-2}
-        PM2_NAME=${PM2_NAME:-$(basename "$TARGET_BACKEND")}
+        PM2_NAME=${PM2_NAME:-dev-console-1}
         SERVER_PORT=${SERVER_PORT:-3017}
         
         # Load user/group/htpasswd defaults in update mode if not in env
@@ -90,14 +92,14 @@ fi
 if [ "$IS_UPDATE" = false ]; then
     # 1. Gather Information Interactively
     read -p "GitHub Repository URL [https://github.com/user/repo.git]: " GIT_REPO
-    read -p "Target Backend Path [/home/servicedepartmen/dealdesk-backend-2]: " TARGET_BACKEND
-    TARGET_BACKEND=${TARGET_BACKEND:-/home/servicedepartmen/dealdesk-backend-2}
+    read -p "Target Backend Path [/home/servicedepartmen/dev-console-1]: " TARGET_BACKEND
+    TARGET_BACKEND=${TARGET_BACKEND:-/home/servicedepartmen/dev-console-1}
 
     read -p "Target Frontend Path [/home/servicedepartmen/public_html/dealdesk-2]: " TARGET_FRONTEND
     TARGET_FRONTEND=${TARGET_FRONTEND:-/home/servicedepartmen/public_html/dealdesk-2}
 
-    read -p "PM2 Process Name [dealdesk-backend-2]: " PM2_NAME
-    PM2_NAME=${PM2_NAME:-dealdesk-backend-2}
+    read -p "PM2 Process Name [dev-console-1]: " PM2_NAME
+    PM2_NAME=${PM2_NAME:-dev-console-1}
 
     read -p "Server Port [3017]: " SERVER_PORT
     SERVER_PORT=${SERVER_PORT:-3017}

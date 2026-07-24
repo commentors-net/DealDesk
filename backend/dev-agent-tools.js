@@ -465,9 +465,8 @@ async function run_command(args) {
  */
 async function pm2_status() {
     return new Promise((resolve) => {
-        // On Windows, PM2 might not be in path or named differently, 
-        // but the spec expects it. We'll attempt it.
-        child_process.exec('pm2 status dealdesk-backend-2', (error, stdout, stderr) => {
+        const pm2Target = process.env.PM2_NAME || 'dev-console-1';
+        child_process.exec(`pm2 status ${pm2Target}`, (error, stdout, stderr) => {
             resolve(stdout || stderr || 'PM2 command failed or not found.');
         });
     });

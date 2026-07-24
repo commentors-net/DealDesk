@@ -598,8 +598,8 @@ async function requestDeveloperApproval(actionType, details, userPrompt) {
   });
 }
 
-const DEV_AGENT_INSTRUCTIONS = `You are the Deal Desk Dev Agent Bridge (v3). 
-Your role is to help the developer interrogate the live application state, modify files securely, and manage/create sibling applications in the workspace context.
+const DEV_AGENT_INSTRUCTIONS = `You are the Agentic Dev Console (v3). 
+Your role is to help the user interrogate the live application state, modify files securely, and manage/create sibling applications in the workspace context.
 
 RULES:
 - You are fully authorized to read, search, write, modify, and delete files and directories anywhere within the user's home folder path (/home/servicedepartmen/) which acts as your sandboxed workspace. This includes Deal Desk, sibling backend devapps, and sibling public_html directories.
@@ -751,7 +751,7 @@ const DEV_AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'pm2_status',
-      description: 'Checks the status of the dealdesk-backend process.',
+      description: 'Checks the status of the dev-console-1 process.',
       parameters: { type: 'object', properties: {} }
     }
   },
@@ -2867,6 +2867,7 @@ async function callDevAgentOpenAi(prompt, history = []) {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || 'gpt-4o'; // Standard model for tool calling
   const auditPublicId = crypto.randomUUID();
+  const executedTools = [];
 
   const messages = [
     { role: 'system', content: DEV_AGENT_INSTRUCTIONS },
@@ -2950,13 +2951,24 @@ async function callDevAgentOpenAi(prompt, history = []) {
           result = `Error: ${err.message}`;
         }
 
+        const previewText = typeof result === 'string' ? result.slice(0, 500) : JSON.stringify(result).slice(0, 500);
+
+        executedTools.push({
+          tool_name: name,
+          tool_args: args,
+          allowed,
+          blocked_reason,
+          result_preview: previewText,
+          created_at: new Date().toISOString()
+        });
+
         // Audit log
         await logDevAgentAudit({
           public_id: auditPublicId,
           user_prompt: prompt,
           tool_name: name,
           tool_args: args,
-          result_preview: typeof result === 'string' ? result.slice(0, 500) : JSON.stringify(result).slice(0, 500),
+          result_preview: previewText,
           allowed,
           blocked_reason,
           created_by: 'dev-agent'
@@ -2976,7 +2988,7 @@ async function callDevAgentOpenAi(prompt, history = []) {
   }
 
   const finalContent = await runCompletion(messages);
-  return { answer: finalContent, audit_id: auditPublicId };
+  return { answer: finalContent, audit_id: auditPublicId, executed_tools: executedTools };
 }
 
 async function answerManagerChat(body) {
@@ -5915,7 +5927,8 @@ if (req.method === 'GET' && url.pathname === '/api/dealdesk/health') {
         sendJson(res, 200, {
           ok: true,
           answer: result.answer,
-          audit_id: result.audit_id
+          audit_id: result.audit_id,
+          executed_tools: result.executed_tools || []
         });
       } catch (err) {
         sendJson(res, 500, { ok: false, error: err.message });
