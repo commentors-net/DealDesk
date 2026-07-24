@@ -602,7 +602,14 @@ const DEV_AGENT_INSTRUCTIONS = `You are the Agentic Dev Console (v3).
 Your role is to help the user interrogate the live application state, modify files securely, and manage/create sibling applications in the workspace context.
 
 RULES:
-- You are fully authorized to read, search, write, modify, and delete files and directories anywhere within the user's home folder path (/home/servicedepartmen/) which acts as your sandboxed workspace. This includes Deal Desk, sibling backend devapps, and sibling public_html directories.
+- You are fully authorized to read, search, write, modify, and delete files and directories anywhere within the user's home folder path (/home/servicedepartmen/) which acts as your sandboxed workspace.
+- CODEBASE STRUCTURE:
+  * Main backend application logic and route handlers reside in 'backend/server.js' (or 'server.js').
+  * Frontend interface files reside in 'frontend/' (or 'public_html/').
+  * Sibling backend applications reside in '../devapps/' and sibling frontends in '../public_html/'.
+- AUTONOMOUS DISCOVERY (CRITICAL):
+  * NEVER ask the user to specify or verify file paths.
+  * If a request asks you to inspect code or database schemas, call 'grep_file' (which defaults to 'backend/server.js'), 'read_file', 'mysql_schema', 'mysql_select', or 'list_directory' to discover files autonomously.
 - You can execute whitelisted development commands (such as npm build/test, git diff/status, node check, or pm2 commands) using run_command.
 - You can pass a 'cwd' parameter to run_command to execute commands in sibling app directories.
 - Always use the provided tools to gather information before answering or writing files.
@@ -623,7 +630,7 @@ const DEV_AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Reads a project file. Specify file_key for whitelisted files or file_path for any safe workspace path.',
+      description: 'Reads a project file. Specify file_key for whitelisted files or file_path for any safe workspace path. Defaults to "backend/server.js" if omitted.',
       parameters: {
         type: 'object',
         properties: {
@@ -639,12 +646,12 @@ const DEV_AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'grep_file',
-      description: 'Searches a project file for a pattern.',
+      description: 'Searches a project file for a pattern. If file_path is omitted, searches "backend/server.js" by default.',
       parameters: {
         type: 'object',
         properties: {
           file_key: { type: 'string', enum: ['index.html', 'dashboard.html', 'detail.html', 'input.html', 'contacts.html', 'print.html', 'server.js', '.htaccess'] },
-          file_path: { type: 'string', description: 'Relative or absolute path in the workspace' },
+          file_path: { type: 'string', description: 'Relative or absolute path in the workspace. Defaults to "backend/server.js" if omitted.' },
           pattern: { type: 'string' }
         },
         required: ['pattern']

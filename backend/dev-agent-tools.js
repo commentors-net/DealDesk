@@ -191,7 +191,12 @@ async function read_file(args) {
             filePath = path.join(__dirname, '..', 'frontend', file_key);
         }
     } else {
-        throw new Error("Missing parameter: 'file_key' or 'file_path' is required.");
+        const candidateServerJs = path.join(__dirname, 'server.js');
+        if (fs.existsSync(candidateServerJs)) {
+            filePath = candidateServerJs;
+        } else {
+            filePath = getSafePath('backend/server.js');
+        }
     }
 
     if (!fs.existsSync(filePath)) {
@@ -226,7 +231,12 @@ async function grep_file(args) {
             filePath = path.join(__dirname, '..', 'frontend', file_key);
         }
     } else {
-        throw new Error("Missing parameter: 'file_key' or 'file_path' is required.");
+        const candidateServerJs = path.join(__dirname, 'server.js');
+        if (fs.existsSync(candidateServerJs)) {
+            filePath = candidateServerJs;
+        } else {
+            filePath = getSafePath('backend/server.js');
+        }
     }
 
     if (!fs.existsSync(filePath)) {
